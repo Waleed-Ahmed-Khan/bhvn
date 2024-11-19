@@ -1,0 +1,9 @@
+[server]
+port=80
+maxMessageSize=300
+[theme]
+primaryColor="#446cf2"
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#F0F2F6"
+textColor="#262730"
+font="sans serif"

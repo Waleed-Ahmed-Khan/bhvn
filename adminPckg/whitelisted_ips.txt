@@ -1,0 +1,18 @@
+firewall-cmd --state
+firewall-cmd --list-all
+>> Create a New Zone
+firewall-cmd --permanent --new-zone=allowed
+>> Add the Specific IP Address to the New Zone
+firewall-cmd --permanent --zone=allowed --add-source=42.114.38.180
+>> Allow Traffic to Port 80 in the New Zone
+firewall-cmd --permanent --zone=allowed --add-service=http
+>> Block Traffic to Port 80 in the Default Zone
+firewall-cmd --permanent --zone=public --remove-service=http
+>> firewall-cmd --reload
+
+
+firewall-cmd --get-zone-of-source=118.69.68.1
+firewall-cmd --zone=internal --list-all
+firewall-cmd --permanent --zone=internal --add-service=http
+
+

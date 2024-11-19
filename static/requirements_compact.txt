@@ -1,0 +1,21 @@
+conda install -c conda-forge streamlit
+conda install -c conda-forge pandas-profiling
+pip install streamlit-pandas-profiling
+pip install mysql-connector-python
+pip install streamlit-aggrid
+pip install streamlit-lottie
+pip install plotly 
+conda install -c anaconda cx_oracle #not in use
+pip install python-dotenv
+pip install pyodbc ## Not in use
+pip install streamlit-option-menu
+pip install click<=8.0.4
+pip install pyxlsb<=1.0.9
+pip install openpyxl<=3.0.9
+pip install XlsxWriter<=3.0.3
+pip install PyMySQL<=1.0.2
+pip install SQLAlchemy<=1.4.36
+pip install pip install pymongo<=4.1.1
+pip install dnspython<=2.2.1
+pip install streamlit-authenticator==0.1.5
+pip install py-bcrypt==0.4
