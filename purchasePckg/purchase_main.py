@@ -98,7 +98,7 @@ def render_purchase_operations(username):
             vendor_selection = vendor_list
         if categories_selection ==["All Categories"]:
             categories_selection = categories_list
-        purch ,delay , Percent_Delays,combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df = helper.preprocess_purch(
+        purch ,delay , Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df = helper.preprocess_purch(
             purch,start_date, end_date, purch_order_status, po_selection, year, customer_po_selection, vendor_selection, categories_selection, source_selection)
         if isinstance(purch, pd.DataFrame):
             if len(purch['Customer PO'].dropna().unique().tolist()) == 1:
@@ -125,6 +125,15 @@ def render_purchase_operations(username):
                     st.latex(r'''
                     =\left(\frac{Σ Required Lead Time}{Σ Purchase Orders}\right)
                     ''')
+            kpi1, kpi2, kpi3 = st.columns(3)
+            with kpi1:
+                st.markdown(f"<h4 style = 'text-align: center; color: red;'>% Ontime Orders</h4>", unsafe_allow_html= True)
+                st.markdown(f"<h3 style='text-align: center; color: blue;'>{percent_ontime:.2f}%</h3>", unsafe_allow_html=True)
+                with st.expander("% Ontime Orders Formula"):
+                    st.latex(r'''
+                    =\left(\frac{Σ Total Ontime Orders }{Σ Total Orders)}\right)*100
+                    ''')
+
             kpi1, kpi2,kpi3, kpi4 =  st.columns(4)
             with kpi1:
                 st.markdown(f"<h4 style = 'text-align: center; color: red;'>% HOT (Handover on time)</h4>", unsafe_allow_html= True)
@@ -183,6 +192,21 @@ def render_purchase_operations(username):
                                                         title = "Avg Monthly Lead Time (Days)", width=600,height=450)
             #col2.plotly_chart(vizHelper.area_chart(lead_t, 'Month', 'Lead Time (Days)','Month', 'Lead Time', 'Monthly Avg Lead Time', unit = 'days'))
             col2.plotly_chart(fig)
+            
+            col1, col2 = st.columns(2)
+            ontime_instance = EDA(ontime_data)
+            col1.plotly_chart(ontime_instance.area_chart(
+                categories='Month',
+                values='% On-Time',
+                title='% On-Time Orders Over Time',
+                unit='%',
+                sort_by='month_num'
+            ))
+
+
+
+
+
             col1, col2 = st.columns(2)
             delay_pct_instance = EDA(combined_prc_del)
             col1.plotly_chart(delay_pct_instance.area_chart(categories='Month', values = 'Percent Delay', title = 'Month % Delay of PO delayed', unit = "%", sort_by = 'month_num'))
@@ -314,20 +338,26 @@ def render_vendor_analysis(username):
             year = st.selectbox('', year)
         with col4:
             st.markdown("**Vendor**")
-            vendor_selection = st.multiselect('', vendor_list, default = "All Vendors" )
-        st.markdown('<hr/>', unsafe_allow_html = True)
+            vendor_selection = st.multiselect('', vendor_list, default="All Vendors")
+        st.markdown('<hr/>', unsafe_allow_html=True)
         st.form_submit_button('💥 Analyze ‼ ')
 
-    if vendor_selection ==["All Vendors"]:
+    if vendor_selection == ["All Vendors"]:
         vendor_selection = vendor_list
-    #else:
-    #    if 'All Vendors' in customer_po_selection:
-    #        customer_po_selection.pop(0)
 
-    _ ,_ , _,_, _,_, _, _, _, _, _, _, avg_vendor_score_all, _,  _ = helper.preprocess_purch(
-        purch, start_date, end_date,purch_order_status, purchase_po_list, year, customer_po_list ,vendor_list, categories_list, source)
-    purch , delay , Percent_Delays,combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, _ , _= helper.preprocess_purch(
-        purch, start_date, end_date, purch_order_status, purchase_po_list, year, customer_po_list , vendor_selection, categories_list, source)
+    _ ,_ , _, _,_, _,_, _, _, _, _, _, _, avg_vendor_score_all, _, _, _ = helper.preprocess_purch(
+        purch, start_date, end_date, purch_order_status, purchase_po_list, year, customer_po_list, vendor_list, categories_list, source
+    )
+    purch, delay, Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, _, _ = helper.preprocess_purch(
+        purch, start_date, end_date, purch_order_status, purchase_po_list, year, customer_po_list, vendor_selection, categories_list, source
+    )
+
+    if purch.empty:
+        st.warning("No data available for the selected filters.")
+        return
+
+    
+    
     if isinstance(purch, pd.DataFrame):
             kpi1, kpi2,kpi3 =  st.columns(3)
             with kpi1:

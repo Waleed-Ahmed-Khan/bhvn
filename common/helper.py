@@ -289,6 +289,22 @@ def preprocess_purch(purch, start_date, end_date , purch_ord_status, po_selectio
         combined_prc_del = combined_prc_del.fillna(0)
         Percent_Delays = sum(combined_prc_del['Percent Delay'])/purch['Month'].nunique()
         Percent_Delays = round(Percent_Delays,0)
+
+
+        filtered_purch = purch.copy()
+        # Calculate total orders, ontime orders, and percent ontime
+        total_orders = len(filtered_purch)  # Total number of orders
+        ontime_orders = (filtered_purch['Ontime/Delay'] == 'Ontime').sum()  # Count of ontime orders
+        percent_ontime = (ontime_orders / total_orders) * 100 if total_orders > 0 else 0  # Percentage ontime
+        
+        ontime_data = purch.groupby('Month', as_index=False).agg(
+        TotalOrders=pd.NamedAgg(column='Purchase Order #', aggfunc='count'),
+        OntimeOrders=pd.NamedAgg(column='Ontime/Delay', aggfunc=lambda x: (x == 'Ontime').sum()),
+        month_num=pd.NamedAgg(column='month_num', aggfunc='max'))
+        ontime_data['% On-Time'] = (ontime_data['OntimeOrders'] / ontime_data['TotalOrders']) * 100
+        ontime_data = ontime_data.sort_values('month_num')
+
+
         Total_Delayed_Orders =  sum(combined_prc_del['Delayed_orders'])
         Total_Placed_Orders = sum(combined_prc_del['Ontime/Delay'])
         data_for_facet = purch.groupby(by = ['Month', 'Ontime/Delay', 'Category', 'Nature'], as_index=True).mean()[['Lead Time (Days)']].reset_index()
@@ -311,9 +327,9 @@ def preprocess_purch(purch, start_date, end_date , purch_ord_status, po_selectio
             month_num = pd.NamedAgg('month_num', aggfunc='max')
                     ).sort_values('month_num', ascending = True)
         hot_df['% HOT'] = round((hot_df['OntimeQty'])/hot_df['ReceivedQty'] * 100, 1)
-        return purch ,delay , Percent_Delays,combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df
+        return purch ,delay , Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df
     else :
-        return 0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0
+        return 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 @st.cache(suppress_st_warning=True, allow_output_mutation=True, ttl = 150)
 def preprocess_cutting(cutting_qc, cutting_df, date_selection, po_selection, opr_selection):
     mask_qc = (cutting_qc['date'].between(*date_selection)) & (cutting_qc['Customer_PO'].isin(po_selection)) & (cutting_qc['opr_code'].isin(opr_selection))

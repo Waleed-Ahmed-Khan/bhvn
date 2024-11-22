@@ -34,6 +34,14 @@ def get_purchase_data():
                 WHEN TO_DAYS(mit.mirdate) - TO_DAYS(po.duedate) < 0 THEN 'Ontime'
             END AS 'Ontime/Delay',
             CASE
+                WHEN TO_DAYS(mit.mirdate) - TO_DAYS(po.duedate) < 0 THEN 1
+                ELSE 0
+            END AS 'Ontime_Orders',
+            CASE
+                WHEN TO_DAYS(mit.mirdate) - TO_DAYS(po.duedate) >= 0 THEN 1
+                ELSE 0
+            END AS 'Delayed_Orders',
+            CASE
                 WHEN po.import=0 THEN 'Local'
                 WHEN po.import=1 THEN 'Import'
             END AS 'source'
