@@ -304,6 +304,7 @@ def preprocess_purch(purch, start_date, end_date , purch_ord_status, po_selectio
         ontime_data['% On-Time'] = (ontime_data['OntimeOrders'] / ontime_data['TotalOrders']) * 100
         ontime_data = ontime_data.sort_values('month_num')
 
+        #this code is for testing git purpose
 
         Total_Delayed_Orders =  sum(combined_prc_del['Delayed_orders'])
         Total_Placed_Orders = sum(combined_prc_del['Ontime/Delay'])
