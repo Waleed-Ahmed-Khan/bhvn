@@ -98,7 +98,7 @@ def render_purchase_operations(username):
             vendor_selection = vendor_list
         if categories_selection ==["All Categories"]:
             categories_selection = categories_list
-        purch ,delay , Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df = helper.preprocess_purch(
+        purch ,delay , Percent_Delays, scaled_dpo_data, percent_ontime, ontime_data, po_ontime_data, combined_prc_del, Avg_Delay,lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df = helper.preprocess_purch(
             purch,start_date, end_date, purch_order_status, po_selection, year, customer_po_selection, vendor_selection, categories_selection, source_selection)
         if isinstance(purch, pd.DataFrame):
             if len(purch['Customer PO'].dropna().unique().tolist()) == 1:
@@ -192,20 +192,50 @@ def render_purchase_operations(username):
                                                         title = "Avg Monthly Lead Time (Days)", width=600,height=450)
             #col2.plotly_chart(vizHelper.area_chart(lead_t, 'Month', 'Lead Time (Days)','Month', 'Lead Time', 'Monthly Avg Lead Time', unit = 'days'))
             col2.plotly_chart(fig)
-            
-            col1, col2 = st.columns(2)
+
+            col1, col2, col3 = st.columns(3)
             ontime_instance = EDA(ontime_data)
             col1.plotly_chart(ontime_instance.area_chart(
                 categories='Month',
                 values='% On-Time',
                 title='% On-Time Orders Over Time',
                 unit='%',
-                sort_by='month_num'
+                sort_by='month_num',
+                
             ))
 
+            
+            col2.plotly_chart(vizHelper.barchart(po_ontime_data, 'OntimeOrders', 'Purchase Order #', title='Total On-Time Orders per Purchase Order'))
+       
+            #colors = ['#FF6347', '#4682B4', '#32CD32', '#FFD700', '#8A2BE2']  # Custom hex colors  
+            #fig.update_traces(marker_color=colors)  # You can also use a list or a color scale
+            #fig.update_traces(marker_color=po_ontime_data['OntimeOrders'], colorscale='Viridis')
+            # Customize the color and appearance using update_traces()
+            # fig.update_traces(
+            #     marker_color='#446cf2',  # Set the color to blue for all bars
+            #     marker_opacity=0.8,  # Set opacity to 80%
+            #     marker_line_color='#ADD8E6',  # 0d6efd Add a black border around each bar
+            #     marker_line_width=1  # Set the border width
+            # )
+            
+            # # Display the chart
+            # col2.plotly_chart(fig)
+           
+                # Display the chart
 
+            # Plot DPMO with Scaled DPO Values
+            scaled_dpo_instance = EDA(scaled_dpo_data)
+            col3.plotly_chart(scaled_dpo_instance.barchart(
+                categories='Scale',
+                values='Value',
+                title='DPMO vs Scaled DPO Values',
+                orientation='v',
+                sort_by='Scale'
+            ))
+           
+            
 
-
+            st.markdown('<hr/>', unsafe_allow_html = True)
 
             col1, col2 = st.columns(2)
             delay_pct_instance = EDA(combined_prc_del)
@@ -345,10 +375,10 @@ def render_vendor_analysis(username):
     if vendor_selection == ["All Vendors"]:
         vendor_selection = vendor_list
 
-    _ ,_ , _, _,_, _,_, _, _, _, _, _, _, avg_vendor_score_all, _, _, _ = helper.preprocess_purch(
+    _ ,_ , _, _, _, _,_, _,_, _, _, _, _, _, _, avg_vendor_score_all, _, _, _ = helper.preprocess_purch(
         purch, start_date, end_date, purch_order_status, purchase_po_list, year, customer_po_list, vendor_list, categories_list, source
     )
-    purch, delay, Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, _, _ = helper.preprocess_purch(
+    purch, delay, Percent_Delays, percent_ontime, ontime_data, po_ontime_data, scaled_dpo_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, _, _ = helper.preprocess_purch(
         purch, start_date, end_date, purch_order_status, purchase_po_list, year, customer_po_list, vendor_selection, categories_list, source
     )
 

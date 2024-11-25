@@ -304,7 +304,11 @@ def preprocess_purch(purch, start_date, end_date , purch_ord_status, po_selectio
         ontime_data['% On-Time'] = (ontime_data['OntimeOrders'] / ontime_data['TotalOrders']) * 100
         ontime_data = ontime_data.sort_values('month_num')
 
-        #this code is for testing git purpose
+        #this code is for Purchase order wise total order on time
+        po_ontime_data = purch.groupby('Purchase Order #', as_index=False).agg(
+        TotalOrders=pd.NamedAgg(column='Purchase Order #', aggfunc='count'),
+        OntimeOrders=pd.NamedAgg(column='Ontime/Delay', aggfunc=lambda x: (x == 'Ontime').sum()))
+        po_ontime_data['% On-Time'] = (po_ontime_data['OntimeOrders'] / po_ontime_data['TotalOrders']) * 100
 
         Total_Delayed_Orders =  sum(combined_prc_del['Delayed_orders'])
         Total_Placed_Orders = sum(combined_prc_del['Ontime/Delay'])
@@ -322,31 +326,129 @@ def preprocess_purch(purch, start_date, end_date , purch_ord_status, po_selectio
         avg_vendor_score = percent_dr_vendor_score_df['Vendor Score'].mean()
         avg_percent_dr = percent_dr_vendor_score_df['%age DR'].mean()
 
+        # Scaled DPO values
+        scaled_dpo_data = pd.DataFrame({
+            'Scale': ['DPO * 1,000,000', 'DPO * 100,000', 'DPO * 10,000', 'DPO * 1,000', 'DPO * 100'],
+            'Value': [
+                avg_percent_dr * 1000000,
+                avg_percent_dr * 100000,
+                avg_percent_dr * 10000,
+                avg_percent_dr * 1000,
+                avg_percent_dr * 100
+            ]
+        })
+
+
         hot_df = purch[['Month', 'Received Qty', 'ontime_qty', 'month_num']].groupby('Month', as_index = False).agg(
             ReceivedQty = pd.NamedAgg('Received Qty', aggfunc='sum'),
             OntimeQty = pd.NamedAgg('ontime_qty', aggfunc='sum'),
             month_num = pd.NamedAgg('month_num', aggfunc='max')
                     ).sort_values('month_num', ascending = True)
         hot_df['% HOT'] = round((hot_df['OntimeQty'])/hot_df['ReceivedQty'] * 100, 1)
-        return purch ,delay , Percent_Delays, percent_ontime, ontime_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df
+        return purch ,delay , Percent_Delays,  scaled_dpo_data, percent_ontime, ontime_data, po_ontime_data, combined_prc_del, Avg_Delay, lead_t, Avg_lead_time, Total_Delayed_Orders, avg_remaining_days, Total_Placed_Orders, percent_dr_vendor_score_df, avg_percent_dr, avg_vendor_score, data_for_facet, hot_df
     else :
-        return 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        return 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 @st.cache(suppress_st_warning=True, allow_output_mutation=True, ttl = 150)
-def preprocess_cutting(cutting_qc, cutting_df, date_selection, po_selection, opr_selection):
+
+
+
+def preprocess_cutting(cutting_qc, cutting_df, date_selection, po_selection, opr_selection, sec_selection):
+    # Apply filters
     mask_qc = (cutting_qc['date'].between(*date_selection)) & (cutting_qc['Customer_PO'].isin(po_selection)) & (cutting_qc['opr_code'].isin(opr_selection))
-    mask_cutting_df = (cutting_df['date'].between(*date_selection)) & (cutting_df['customer_PO'].isin(po_selection)) & (cutting_df['opr_code'].isin(opr_selection))
-    
+    mask_cutting_df = (cutting_df['date'].between(*date_selection)) & (cutting_df['customer_PO'].isin(po_selection)) & (cutting_df['opr_code'].isin(opr_selection)) & (cutting_df['section'].isin(sec_selection))
     cutting_qc = cutting_qc[mask_qc]
     cutting_df = cutting_df[mask_cutting_df]
 
-    if ((isinstance (cutting_qc, pd.DataFrame)) & (isinstance (cutting_df, pd.DataFrame))) :
+    if ((isinstance(cutting_qc, pd.DataFrame)) & (isinstance(cutting_df, pd.DataFrame))):
+        # Aggregate section-wise production excluding null sections
+        
+
+        # Aggregate defect data
         pie_bar_defect_type_qc = cutting_qc[['defect_type', 'defectQty']]
-        pie_bar_defect_type_qc = pie_bar_defect_type_qc.groupby(by='defect_type').sum().reset_index().sort_values(by='defectQty', ascending= True)
+        pie_bar_defect_type_qc = pie_bar_defect_type_qc.groupby(by='defect_type').sum().reset_index().sort_values(by='defectQty', ascending=True)
+
         pie_bar_opr_code_qc = cutting_qc[['opr_code', 'defectQty']]
-        pie_bar_opr_code_qc = pie_bar_opr_code_qc.groupby(by='opr_code').sum().reset_index().sort_values(by='defectQty', ascending= True)
-        return pie_bar_defect_type_qc, pie_bar_opr_code_qc, cutting_df
-    else :
-        return 0, 0, 0
+        pie_bar_opr_code_qc = pie_bar_opr_code_qc.groupby(by='opr_code').sum().reset_index().sort_values(by='defectQty', ascending=True)
+
+    
+
+
+
+        # Filter out rows with null values in the 'qty' column
+        section_production = cutting_df[['section', 'qty']]
+        # Group by 'section' and sum the non-null 'qty' values
+        section_production = section_production.groupby('section').sum().reset_index().sort_values(by='qty', ascending=True)
+
+        # Calculate Total Production and Total Defects
+        total_production = cutting_df['qty'].sum()
+        total_defects = cutting_qc['defectQty'].sum()
+
+        # Calculate KPIs
+        yield_percentage = ((total_production - total_defects) / total_production) * 100 if total_production > 0 else 0
+        defect_density = round((total_defects / total_production),8) if total_production > 0 else 0
+        format_defect_density = f"{defect_density:.6f}"
+        defect_per_million =round(defect_density*1e6, 4)
+
+        #calcualte production per operator
+        num_operator =cutting_df['opr_code'].nunique()
+        avg_production_per_opr =total_production / num_operator if num_operator > 0 else 0
+        
+        
+
+        #calculate production per section
+        #section_production =cutting_df.groupby('section', as_index=False).agg(total_production=('qty','sum'))
+        # section_production = cutting_df[['section', 'qty']]
+        # section_production = section_production.groupby(by='section').sum().reset_index().sort_values(by='qty', ascending=True)
+        num_operator = cutting_df['opr_code'].nunique()
+        avg_production_per_sec =total_production / num_operator if num_operator > 0 else 0
+
+
+
+        section_production = cutting_df.groupby('section')['qty'].sum().reset_index()
+        # Convert section to string for better visualization
+        section_production['section'] = section_production['section'].astype(str)
+        # Add percentage for pie chart
+        total_qty = section_production['qty'].sum()
+        section_production['PercentProduction'] = (section_production['qty'] / total_qty) * 100
+        # Handle clutter: Group sections with less than 2% production into "Others"
+        small_sections = section_production[section_production['PercentProduction'] < 2]
+        if not small_sections.empty:
+            others_total = small_sections['qty'].sum()
+            others_percentage = small_sections['PercentProduction'].sum()
+
+            # Remove small sections and add an "Others" row
+            section_production = section_production[section_production['PercentProduction'] >= 1    ]
+            section_production = section_production.append(
+                {'section': 'Others', 'qty': others_total, 'PercentProduction': others_percentage},
+                ignore_index=True
+            )
+
+        # section_production = cutting_df[['section', 'qty']].dropna(subset=['section'])  # Remove rows with null section
+        # section_production = section_production.groupby('section').sum().reset_index().sort_values(by='qty', ascending=True)
+        # Convert section to categorical for better graphing
+        #section_production['section'] = pd.Categorical(section_production['section'], ordered=True)
+
+        # Return the calculated values
+        return pie_bar_defect_type_qc, pie_bar_opr_code_qc, cutting_df, yield_percentage, format_defect_density, defect_per_million, avg_production_per_opr, section_production,avg_production_per_sec
+    else:
+        return 0, 0, 0, 0, 0, 0, 0, 0
+
+
+# def preprocess_cutting(cutting_qc, cutting_df, date_selection, po_selection, opr_selection):
+#     mask_qc = (cutting_qc['date'].between(*date_selection)) & (cutting_qc['Customer_PO'].isin(po_selection)) & (cutting_qc['opr_code'].isin(opr_selection))
+#     mask_cutting_df = (cutting_df['date'].between(*date_selection)) & (cutting_df['customer_PO'].isin(po_selection)) & (cutting_df['opr_code'].isin(opr_selection))
+    
+#     cutting_qc = cutting_qc[mask_qc]
+#     cutting_df = cutting_df[mask_cutting_df]
+
+#     if ((isinstance (cutting_qc, pd.DataFrame)) & (isinstance (cutting_df, pd.DataFrame))) :
+#         pie_bar_defect_type_qc = cutting_qc[['defect_type', 'defectQty']]
+#         pie_bar_defect_type_qc = pie_bar_defect_type_qc.groupby(by='defect_type').sum().reset_index().sort_values(by='defectQty', ascending= True)
+#         pie_bar_opr_code_qc = cutting_qc[['opr_code', 'defectQty']]
+#         pie_bar_opr_code_qc = pie_bar_opr_code_qc.groupby(by='opr_code').sum().reset_index().sort_values(by='defectQty', ascending= True)
+#         return pie_bar_defect_type_qc, pie_bar_opr_code_qc, cutting_df
+#     else :
+#         return 0, 0, 0
 
 
 
