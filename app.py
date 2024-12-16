@@ -7,7 +7,9 @@ import accountsPckg.costing.costing as costing
 import adminPckg.userManagement as userManagement, purchasePckg.purchase as purchase
 import cutting, sewingPckg.sewing as sewing, adminPckg.usersDashboard as usersDashboard
 import printingPckg.printing as printing
+import tprsPckg.tprs as tprs
 import packingPckg.packing as packing
+
 #import eda
 import AutoPckg.auto as auto
 import adminPckg.admin as admin
@@ -83,8 +85,7 @@ def main(username, name, authenticator):
         elif task == 'Printing':
                 printing.render_printing(username)
         elif task == 'TPR':
-                st.write(" ")
-                st.header("Coming Soon ... ⏳")
+                tprs.render_tprs(username)
         elif task == 'Automation':
                 auto.render_auto(username)
         elif task == 'Sewing':

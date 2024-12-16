@@ -422,7 +422,10 @@ def preprocess_cutting(cutting_qc, cutting_df, date_selection, po_selection, opr
                 {'section': 'Others', 'qty': others_total, 'PercentProduction': others_percentage},
                 ignore_index=True
             )
-
+            # 
+            # new_row = pd.DataFrame({'section': ['Others'], 'qty': [others_total], 'PercentProduction': [others_percentage]})
+            # # Concatenate the new DataFrame with the existing one
+            # section_production = pd.concat([section_production, new_row], ignore_index=True)
         # section_production = cutting_df[['section', 'qty']].dropna(subset=['section'])  # Remove rows with null section
         # section_production = section_production.groupby('section').sum().reset_index().sort_values(by='qty', ascending=True)
         # Convert section to categorical for better graphing

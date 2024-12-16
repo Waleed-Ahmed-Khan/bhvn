@@ -12,6 +12,8 @@ def render_cutting(username):
     st.write(fh.format_st_button(), unsafe_allow_html=True)
     cutting_df_query = "SELECT * FROM cutting_pro5"
     cutting_qc_query = "SELECT * FROM cutting_qc2"
+
+    #SELECT * FROM `tblcuttingdefects_quantity` having these fields id 	date 	dept_id 	section_id 	TotalQty 	orderno 	ProductionNo 	ponumber 	TotalDefectQty 	TotalPassedQty 	itemid 	
     cutting_df = helper.load_data(cutting_df_query)
     cutting_df = cutting_df.astype({'section': 'object', 'itemid':'object', 'partid':'object', 'qty':'float'})
     cutting_qc = helper.load_data(cutting_qc_query)
